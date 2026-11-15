@@ -10,6 +10,10 @@
 
 > جدول التطعيمات للاسترشاد فقط — راجع دايماً كارت التطعيم ومكتب الصحة أو طبيب الأطفال.
 
+## نسخة الآيفون
+
+في فولدر [`iphone/`](iphone/) نسخة بتتثبت على الآيفون من Safari (Add to Home Screen) — التفاصيل في [`iphone/README.md`](iphone/README.md).
+
 ## تحميل الـ APK
 
 كل push بيشغّل GitHub Actions (`Build APK`) اللي بيبني `app-debug.apk`.

@@ -2,7 +2,9 @@ name: Build APK
 
 on:
   push:
+    paths-ignore: ['iphone/**', '.github/workflows/iphone-pages.yml']
   pull_request:
+    paths-ignore: ['iphone/**', '.github/workflows/iphone-pages.yml']
   workflow_dispatch:
 
 jobs:

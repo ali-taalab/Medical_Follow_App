@@ -1,0 +1,17 @@
+{
+  "name": "متابعة صحة طفلي",
+  "short_name": "صحة طفلي",
+  "description": "متابعة التطعيمات وزيارات الدكتور والروشتات للطفل",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7FAFA",
+  "theme_color": "#00696E",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

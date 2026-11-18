@@ -1,7 +1,8 @@
 // Offline support: cache the app shell, serve it cache-first, refresh in the background.
-const CACHE = 'child-health-v1';
+const CACHE = 'child-health-v2';
 const FILES = [
-  './', './index.html', './app.css', './app.js', './db.js', './i18n.js', './schedule.js',
+  './', './index.html', './app.css', './app.js', './db.js', './i18n.js', './schedule.js', './medicines.js', './scan.js',
+  './vendor/anthropic-sdk.js',
   './manifest.webmanifest', './icons/icon.svg', './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
 ];
 

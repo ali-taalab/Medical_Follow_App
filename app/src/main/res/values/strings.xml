@@ -108,4 +108,24 @@
     <string name="visit">زيارة</string>
     <string name="visit_date">تاريخ الزيارة</string>
     <string name="visit_details">تفاصيل الزيارة</string>
+    <string name="scan_not_rx">الصورة دي مش باينة إنها روشتة</string>
+    <string name="scan_done">تمت قراءة الروشتة — راجع البيانات قبل الحفظ</string>
+    <string name="scan_err">حصلت مشكلة في قراءة الروشتة، جرّب تاني</string>
+    <string name="scan_err_key">مفتاح Claude غير صحيح — راجعه في صفحة بيانات الطفل</string>
+    <string name="scan_err_offline">مفيش اتصال بالإنترنت</string>
+    <string name="scan_err_refusal">مقدرش يقرأ الصورة دي</string>
+    <string name="scan_need_key">عشان التطبيق يقرأ التشخيص والأدوية من الصورة لوحده، ضيف مفتاح Claude من صفحة \"بيانات الطفل\".</string>
+    <string name="scanning">جاري قراءة الروشتة… (ممكن ياخد دقيقة)</string>
+    <string name="scan_btn">قراءة الروشتة تلقائياً</string>
+    <string name="add_from_list">من القائمة</string>
+    <string name="choose_from_list">اختيار دواء من القائمة</string>
+    <string name="search_medicine">ابحث عن دواء…</string>
+    <string name="med_list_hint">أشهر أدوية الأطفال من الولادة لحد 6 سنين، للاختيار السريع بس. متدّيش أي دواء غير بروشتة الدكتور، والجرعة بتتحدد حسب وزن الطفل.</string>
+    <string name="no_results">مفيش نتايج — تقدر تكتب اسم الدواء بنفسك</string>
+    <string name="ai_saved">تم حفظ المفتاح</string>
+    <string name="ai_removed">تم مسح المفتاح</string>
+    <string name="ai_title">قراءة الروشتة بالذكاء الاصطناعي</string>
+    <string name="ai_hint">لما ترفع صورة الروشتة، التطبيق يبعتها لـ Claude (ذكاء اصطناعي من Anthropic) فيقرأ منها التشخيص والأدوية والجرعات ويملأ الخانات، وانت بتراجعها قبل الحفظ. محتاج مفتاح API من console.anthropic.com، وكل صورة بتتحاسب بمبلغ صغير على حسابك هناك. المفتاح بيتحفظ على الموبايل ده بس.</string>
+    <string name="ai_key">مفتاح Claude API</string>
+    <string name="remove_key">مسح المفتاح</string>
 </resources>

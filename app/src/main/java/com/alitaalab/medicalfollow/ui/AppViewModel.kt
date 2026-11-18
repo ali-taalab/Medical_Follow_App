@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.alitaalab.medicalfollow.MedicalApp
+import com.alitaalab.medicalfollow.ai.ApiKeyStore
 import com.alitaalab.medicalfollow.data.Child
 import com.alitaalab.medicalfollow.data.Repository
 import com.alitaalab.medicalfollow.data.Vaccine
@@ -31,7 +32,18 @@ fun Vaccine.status(today: LocalDate = LocalDate.now()): VaccineStatus = when {
     else -> VaccineStatus.UPCOMING
 }
 
-class AppViewModel(private val repo: Repository) : ViewModel() {
+class AppViewModel(
+    private val repo: Repository,
+    private val keyStore: ApiKeyStore,
+) : ViewModel() {
+
+    /** The parent's Claude API key for reading prescriptions ("" when not set). */
+    val aiKey: StateFlow<String> = keyStore.key
+
+    fun saveAiKey(key: String) = keyStore.save(key)
+
+    fun clearAiKey() = keyStore.clear()
+
 
     val childState: StateFlow<ChildState> = repo.child
         .map { ChildState(true, it) }
@@ -65,7 +77,7 @@ class AppViewModel(private val repo: Repository) : ViewModel() {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as MedicalApp
-                AppViewModel(app.repository)
+                AppViewModel(app.repository, app.apiKeyStore)
             }
         }
     }

@@ -3,6 +3,8 @@
 import { db } from './db.js';
 import { STRINGS } from './i18n.js';
 import { MANDATORY, OPTIONAL } from './schedule.js';
+import { MEDICINE_GROUPS, medicineSuggestions } from './medicines.js';
+import { readPrescription } from './scan.js';
 
 const state = {
   child: null,
@@ -10,9 +12,12 @@ const state = {
   visits: [],
   lang: 'ar',
   filter: 'all',
+  aiKey: '',
 };
 
 let editPhoto = null; // photo (data URL) of the visit being edited
+let pickerTarget = null; // medicine row the medicine picker fills (null = add a new row)
+let scanning = false;
 
 // ---------------------------------------------------------------- i18n
 
@@ -148,6 +153,8 @@ const ICONS = {
   camera: '<path d="M3 8h4l2-3h6l2 3h4v12H3z"/><circle cx="12" cy="13" r="4"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   warn: '<path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18v.01"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>',
+  sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
   baby: '<circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01"/><path d="M9.5 15a3.5 3.5 0 0 0 5 0"/><path d="M12 3c-1 1.5-1 3 0 4"/>',
 };
 const icon = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
@@ -444,6 +451,7 @@ async function eraseAll() {
   await db.clear('vaccines');
   await db.clear('visits');
   await db.clear('kv');
+  state.aiKey = '';
   await loadAll();
   go('#/home');
 }
@@ -708,7 +716,8 @@ function screenVisitDetail(route, id) {
 function medRow(m = {}) {
   return `<div class="card med-row stack">
     <div class="row">
-      <label class="field grow"><span>${esc(t('medicine_name'))}</span><input data-med="name" value="${esc(m.name)}"></label>
+      <label class="field grow"><span>${esc(t('medicine_name'))}</span><input data-med="name" list="medList" autocomplete="off" value="${esc(m.name)}"></label>
+      <button type="button" class="iconbtn" data-action="open-med-picker" aria-label="${esc(t('choose_from_list'))}">${icon('list')}</button>
       <button type="button" class="iconbtn danger" data-action="remove-med" aria-label="${esc(t('delete'))}">${icon('trash')}</button>
     </div>
     <label class="field"><span>${esc(t('dose_hint'))}</span><input data-med="dose" value="${esc(m.dose)}"></label>
@@ -724,6 +733,98 @@ function photoBlock() {
     ? `<div class="photo-wrap"><img class="photo" src="${editPhoto}" alt="">
         <button type="button" class="iconbtn on-photo" data-action="remove-photo" aria-label="${esc(t('remove_photo'))}">${icon('close')}</button></div>`
     : '';
+}
+
+/** The "read prescription" area under the photo. */
+function scanBlock() {
+  if (!editPhoto) return '';
+  if (!state.aiKey) return `<p class="hint">${esc(t('scan_need_key'))}</p>`;
+  if (scanning) return `<div class="scan-status"><span class="spinner"></span>${esc(t('scanning'))}</div>`;
+  return `<button type="button" class="btn outline" data-action="scan-rx">${icon('sparkle')} ${esc(t('scan_btn'))}</button>`;
+}
+
+function refreshScanBlock() {
+  const el = document.getElementById('scanBlock');
+  if (el) el.innerHTML = scanBlock();
+}
+
+/** Fills the visit form from a scanned prescription without overwriting what the parent typed. */
+function applyScan(form, r) {
+  const setIfEmpty = (name, value) => {
+    const field = form.elements[name];
+    if (field && value && !field.value.trim()) field.value = value;
+  };
+  setIfEmpty('diagnosis', r.diagnosis);
+  setIfEmpty('doctorName', r.doctor_name);
+  setIfEmpty('specialty', r.specialty);
+  setIfEmpty('clinic', r.clinic);
+  setIfEmpty('notes', r.notes);
+  // A new visit defaults to today; use the date written on the prescription instead.
+  if (Number(form.dataset.id) === 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.visit_date || '') && r.visit_date <= today()) {
+    form.elements.date.value = r.visit_date;
+  }
+  const existing = new Set([...form.querySelectorAll('[data-med="name"]')].map((i) => i.value.trim().toLowerCase()).filter(Boolean));
+  const meds = document.getElementById('meds');
+  // Drop empty rows left from "add medicine" so scanned lines aren't mixed with blanks.
+  meds.querySelectorAll('.med-row').forEach((row) => {
+    if (![...row.querySelectorAll('input')].some((i) => i.value.trim())) row.remove();
+  });
+  (r.medications || []).filter((m) => m.name && !existing.has(m.name.trim().toLowerCase()))
+    .forEach((m) => meds.insertAdjacentHTML('beforeend', medRow(m)));
+}
+
+async function scanPrescription() {
+  const form = document.getElementById('visitForm');
+  if (!form || !editPhoto || !state.aiKey || scanning) return;
+  scanning = true;
+  refreshScanBlock();
+  const photo = editPhoto;
+  try {
+    const result = await readPrescription({ apiKey: state.aiKey, dataUrl: photo, lang: state.lang });
+    // Ignore the result if the parent left the form or changed the photo meanwhile.
+    if (document.getElementById('visitForm') !== form || editPhoto !== photo) return;
+    if (!result.is_prescription) { toast(t('scan_not_rx')); return; }
+    applyScan(form, result);
+    toast(t('scan_done'));
+  } catch (err) {
+    toast(t({ key: 'scan_err_key', offline: 'scan_err_offline', refusal: 'scan_err_refusal' }[err.code] || 'scan_err'));
+  } finally {
+    scanning = false;
+    refreshScanBlock();
+  }
+}
+
+// ---------------------------------------------------------------- medicine picker
+
+function medicinePickerList(query) {
+  const q = query.trim().toLowerCase();
+  const match = (m) => !q || [m.ar, m.en, ...m.brands].some((x) => x.toLowerCase().includes(q));
+  const groups = MEDICINE_GROUPS
+    .map((g) => ({ g, items: g.items.filter(match) }))
+    .filter((x) => x.items.length);
+  if (!groups.length) return `<p class="muted">${esc(t('no_results'))}</p>`;
+  return groups.map(({ g, items }) => `<h2>${esc(state.lang === 'ar' ? g.ar : g.en)}</h2>
+    ${items.map((m) => {
+      const generic = state.lang === 'ar' ? m.ar : m.en;
+      return `<div class="card med-pick">
+        <button type="button" class="med-generic" data-action="pick-medicine" data-name="${esc(generic)}">${esc(generic)}
+          ${state.lang === 'ar' ? `<span class="sub">${esc(m.en)}</span>` : ''}</button>
+        ${m.brands.length ? `<div class="brands">${m.brands.map((b) => `<button type="button" class="brand" data-action="pick-medicine" data-name="${esc(`${b} (${generic})`)}">${esc(b)}</button>`).join('')}</div>` : ''}
+      </div>`;
+    }).join('')}`).join('');
+}
+
+function openMedicinePicker(row) {
+  pickerTarget = row;
+  openSheet(`<div class="stack picker">
+    <div class="row">
+      <h3 class="grow">${esc(t('choose_from_list'))}</h3>
+      <button type="button" class="iconbtn" data-action="close-sheet" aria-label="${esc(t('close'))}">${icon('close')}</button>
+    </div>
+    <input type="search" data-action="med-search" placeholder="${esc(t('search_medicine'))}" autocomplete="off">
+    <p class="hint">${esc(t('med_list_hint'))}</p>
+    <div id="medPickerList">${medicinePickerList('')}</div>
+  </div>`);
 }
 
 function screenVisitEdit(route, id) {
@@ -746,13 +847,18 @@ function screenVisitEdit(route, id) {
       <label class="field grow"><span>${esc(t('height_cm'))}</span><input name="heightCm" inputmode="decimal" value="${esc(pretty(v.heightCm))}"></label>
       <label class="field grow"><span>${esc(t('temperature_c'))}</span><input name="temperatureC" inputmode="decimal" value="${esc(pretty(v.temperatureC))}"></label>
     </div>
-    <h2>${esc(t('prescription'))}</h2>
-    <div id="meds" class="stack">${(v.medications || []).map(medRow).join('')}</div>
-    <button type="button" class="btn outline" data-action="add-med">${icon('plus')} ${esc(t('add_medication'))}</button>
     <h2>${esc(t('prescription_photo'))}</h2>
     <div id="photoBlock">${photoBlock()}</div>
     <label class="btn outline file">${icon('camera')} <span id="photoLabel">${esc(t(editPhoto ? 'change_photo' : 'choose_photo'))}</span>
       <input type="file" accept="image/*" data-action="pick-photo" hidden></label>
+    <div id="scanBlock">${scanBlock()}</div>
+    <h2>${esc(t('prescription'))}</h2>
+    <div id="meds" class="stack">${(v.medications || []).map(medRow).join('')}</div>
+    <div class="row gap">
+      <button type="button" class="btn outline grow" data-action="add-med">${icon('plus')} ${esc(t('add_medication'))}</button>
+      <button type="button" class="btn outline grow" data-action="add-from-list">${icon('list')} ${esc(t('add_from_list'))}</button>
+    </div>
+    <datalist id="medList">${medicineSuggestions(state.lang).map((n) => `<option value="${esc(n)}"></option>`).join('')}</datalist>
     <label class="field"><span>${esc(t('notes'))}</span><textarea name="notes" rows="3">${esc(v.notes)}</textarea></label>
     <button class="btn primary" type="submit">${esc(t('save'))}</button>
   </form>`;
@@ -771,6 +877,14 @@ function screenProfile(route) {
       <button class="btn outline" data-action="calendar-all">${icon('calendar')} ${esc(t('calendar_all'))}</button>
       <p class="hint">${esc(t('calendar_hint'))}</p>
     </div>
+    <h2>${esc(t('ai_title'))}</h2>
+    <form class="card stack" data-form="ai-key">
+      <p class="hint">${esc(t('ai_hint'))}</p>
+      <label class="field"><span>${esc(t('ai_key'))}</span>
+        <input type="password" name="key" autocomplete="off" placeholder="${state.aiKey ? '••••••••' + esc(state.aiKey.slice(-4)) : 'sk-ant-…'}"></label>
+      <button class="btn outline" type="submit">${esc(t('save'))}</button>
+      ${state.aiKey ? `<button type="button" class="btn danger-outline" data-action="remove-ai-key">${esc(t('remove_key'))}</button>` : ''}
+    </form>
     <h2>${esc(t('backup'))}</h2>
     <div class="card stack">
       <p class="hint">${esc(t('backup_hint'))}</p>
@@ -931,6 +1045,29 @@ const actions = {
     editPhoto = null;
     document.getElementById('photoBlock').innerHTML = '';
     document.getElementById('photoLabel').textContent = t('choose_photo');
+    refreshScanBlock();
+  },
+  'scan-rx': () => scanPrescription(),
+  'open-med-picker': (el) => openMedicinePicker(el.closest('.med-row')),
+  'add-from-list': () => openMedicinePicker(null),
+  'pick-medicine': (el) => {
+    let row = pickerTarget && document.body.contains(pickerTarget) ? pickerTarget : null;
+    if (!row) {
+      const meds = document.getElementById('meds');
+      if (!meds) return;
+      meds.insertAdjacentHTML('beforeend', medRow());
+      row = meds.lastElementChild;
+    }
+    row.querySelector('[data-med="name"]').value = el.dataset.name;
+    closeSheet();
+    pickerTarget = null;
+    row.querySelector('[data-med="dose"]').focus();
+  },
+  'remove-ai-key': async () => {
+    state.aiKey = '';
+    await db.kvSet('aiKey', '');
+    render();
+    toast(t('ai_removed'));
   },
   'dismiss-install': (el) => {
     try { localStorage.setItem('installDismissed', '1'); } catch (_) { /* ignore */ }
@@ -949,6 +1086,9 @@ const changeActions = {
     el.value = '';
     document.getElementById('photoBlock').innerHTML = photoBlock();
     document.getElementById('photoLabel').textContent = t('change_photo');
+    refreshScanBlock();
+    // Read the new photo straight away when a key is set.
+    if (state.aiKey) scanPrescription();
   },
   'import-backup': async (el) => {
     const file = el.files?.[0];
@@ -964,6 +1104,14 @@ const changeActions = {
 };
 
 const forms = {
+  'ai-key': async (form) => {
+    const key = String(new FormData(form).get('key') || '').trim();
+    if (!key) return;
+    state.aiKey = key;
+    await db.kvSet('aiKey', key);
+    render();
+    toast(t('ai_saved'));
+  },
   profile: async (form) => {
     const f = new FormData(form);
     const name = String(f.get('name') || '').trim();
@@ -1047,6 +1195,12 @@ document.addEventListener('change', (e) => {
   if (fn) fn(e.target, e);
 });
 
+document.addEventListener('input', (e) => {
+  if (e.target.dataset?.action === 'med-search') {
+    document.getElementById('medPickerList').innerHTML = medicinePickerList(e.target.value);
+  }
+});
+
 document.addEventListener('submit', (e) => {
   const form = e.target;
   const fn = forms[form.dataset.form];
@@ -1061,6 +1215,7 @@ async function start() {
   state.lang = detectLang();
   applyLang();
   await loadAll();
+  state.aiKey = (await db.kvGet('aiKey')) || '';
   render();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

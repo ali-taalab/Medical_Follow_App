@@ -1,6 +1,13 @@
 package com.alitaalab.medicalfollow.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import com.alitaalab.medicalfollow.ui.components.SectionTitle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -144,6 +151,59 @@ fun ProfileScreen(vm: AppViewModel, child: Child?, isSetup: Boolean) {
             ) {
                 Text(stringResource(if (isSetup) R.string.start else R.string.save))
             }
+
+            if (!isSetup) {
+                AiKeySection(
+                    vm = vm,
+                    onMessage = { msg -> scope.launch { snackbar.showSnackbar(msg) } },
+                )
+            }
+        }
+    }
+}
+
+/** Settings for reading prescription photos with Claude: the parent's own API key. */
+@Composable
+private fun AiKeySection(vm: AppViewModel, onMessage: (String) -> Unit) {
+    val savedKey by vm.aiKey.collectAsStateWithLifecycle()
+    var input by rememberSaveable { mutableStateOf("") }
+    val savedMsg = stringResource(R.string.ai_saved)
+    val removedMsg = stringResource(R.string.ai_removed)
+
+    SectionTitle(stringResource(R.string.ai_title))
+    Text(
+        stringResource(R.string.ai_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    OutlinedTextField(
+        value = input,
+        onValueChange = { input = it },
+        label = { Text(stringResource(R.string.ai_key)) },
+        placeholder = { Text(if (savedKey.isNotBlank()) "••••••••" + savedKey.takeLast(4) else "sk-ant-…") },
+        visualTransformation = PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(
+            enabled = input.isNotBlank(),
+            onClick = {
+                vm.saveAiKey(input)
+                input = ""
+                onMessage(savedMsg)
+            },
+            modifier = Modifier.weight(1f),
+        ) { Text(stringResource(R.string.save)) }
+        if (savedKey.isNotBlank()) {
+            OutlinedButton(
+                onClick = {
+                    vm.clearAiKey()
+                    onMessage(removedMsg)
+                },
+                modifier = Modifier.weight(1f),
+            ) { Text(stringResource(R.string.remove_key), color = MaterialTheme.colorScheme.error) }
         }
     }
 }

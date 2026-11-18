@@ -36,6 +36,19 @@ android {
     buildFeatures {
         compose = true
     }
+    packaging {
+        resources {
+            // Duplicate license/metadata files from the Anthropic SDK's JVM dependencies.
+            excludes += setOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "/META-INF/DEPENDENCIES",
+                "/META-INF/LICENSE*",
+                "/META-INF/NOTICE*",
+                "/META-INF/INDEX.LIST",
+                "/META-INF/versions/9/module-info.class",
+            )
+        }
+    }
 }
 
 ksp {
@@ -65,4 +78,7 @@ dependencies {
 
     implementation("androidx.work:work-runtime-ktx:2.10.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Reads prescription photos with Claude (the parent's own API key).
+    implementation("com.anthropic:anthropic-java:3.3.0")
 }

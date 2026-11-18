@@ -108,4 +108,24 @@
     <string name="visit">Visit</string>
     <string name="visit_date">Visit date</string>
     <string name="visit_details">Visit details</string>
+    <string name="scan_not_rx">This photo doesn\'t look like a prescription</string>
+    <string name="scan_done">Prescription read — review it before saving</string>
+    <string name="scan_err">Something went wrong reading the prescription, try again</string>
+    <string name="scan_err_key">The Claude key is not valid — check it on the profile page</string>
+    <string name="scan_err_offline">No internet connection</string>
+    <string name="scan_err_refusal">Couldn\'t read this photo</string>
+    <string name="scan_need_key">To have the diagnosis and medicines read from the photo automatically, add a Claude key on the \"Child profile\" page.</string>
+    <string name="scanning">Reading the prescription… (may take a minute)</string>
+    <string name="scan_btn">Read prescription automatically</string>
+    <string name="add_from_list">From list</string>
+    <string name="choose_from_list">Choose a medicine</string>
+    <string name="search_medicine">Search medicines…</string>
+    <string name="med_list_hint">Common medicines for children from birth to 6 years, for quick entry only. Only give a medicine the doctor prescribed; doses depend on the child\'s weight.</string>
+    <string name="no_results">No results — you can type the medicine name yourself</string>
+    <string name="ai_saved">Key saved</string>
+    <string name="ai_removed">Key removed</string>
+    <string name="ai_title">Read prescriptions with AI</string>
+    <string name="ai_hint">When you add a prescription photo, the app sends it to Claude (Anthropic\'s AI), which reads the diagnosis, medicines and doses and fills in the form for you to review before saving. You need an API key from console.anthropic.com; each photo costs a small amount on that account. The key is stored only on this phone.</string>
+    <string name="ai_key">Claude API key</string>
+    <string name="remove_key">Remove key</string>
 </resources>

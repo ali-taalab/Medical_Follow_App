@@ -405,3 +405,54 @@ input:focus, textarea:focus, select:focus { outline: 2px solid var(--primary); o
   transition: opacity 0.2s, transform 0.2s;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- prescription reading & medicine picker ---------- */
+.scan-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 600;
+}
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.picker h3 { margin: 0; }
+.picker h2 { margin-top: 10px; }
+.med-pick { padding: 4px 6px 10px; }
+.med-generic {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  text-align: start;
+  padding: 8px;
+  border-radius: 10px;
+}
+.med-generic .sub { display: block; font-weight: 400; }
+.med-generic:active, .brand:active { background: var(--primary-soft); }
+.brands { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 8px; }
+.brand {
+  border: 1.5px solid var(--primary);
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+}
